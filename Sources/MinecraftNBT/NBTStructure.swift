@@ -41,7 +41,7 @@ public struct NBTStructure {
 		return try traverse(keypath).1
 	}
 		
-	public mutating func write(_ value: any NBTTag, to keypath: [String]) throws {
+	public mutating func write(_ value: (any NBTTag)?, to keypath: [String]) throws {
 		//"", "Data", "DataPacks", "Enabled", "0"
 		var (tags, _) = try traverse(keypath)
 
@@ -51,14 +51,26 @@ public struct NBTStructure {
 			
 			var newValue: any NBTTag
 			if var compound = tag as? NBTCompound {
-				compound[key] = value
-				newValue = compound
+                if value == nil{
+                    compound.contents.removeValue(forKey: key)
+                } else {
+                    compound[key] = value
+                }
+                newValue = compound
 			} else if var list = tag as? NBTList {
 				if let index = Int(key) {
 					if 0..<list.elements.count ~= index {
-						list.elements[index] = value
+                        if value == nil{
+                            list.elements.remove(at: index)
+                        } else{
+                            list.elements[index] = value!
+                        }
 					} else if index == list.elements.count {
-						list.elements.append(value)
+                        if value == nil{
+                            throw KeypathError.fatalError("Can't append nil value")
+                        }else{
+                            list.elements.append(value!)
+                        }
 					} else {
 						throw KeypathError.outOfBoundsListIndex("List index `\(key)` is out of bounds on `\(list)`")
 					}
